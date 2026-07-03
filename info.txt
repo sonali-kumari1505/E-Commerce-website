@@ -1,0 +1,10 @@
+| CommonJS                            | ES Modules                            |
+| ----------------------------------- | ------------------------------------- |
+| `require()`                         | `import`                              |
+| `module.exports`                    | `export`                              |
+| Older Node.js system                | Standard JavaScript module system     |
+| Synchronous loading                 | Supports asynchronous/static analysis |
+| Default if `"type"` isn't specified | Enabled by `"type": "module"`         |
+No curly braces are used in  the default export and we can re name it 
+in named export excat match of function in export and import ,if want to change the name then do it like below
+import { add as sum } from "./math.js";

@@ -1,0 +1,6 @@
+node_modules/
+fronted/
+.env
+.env.*
+backened/.env
+backened/src/middleware
