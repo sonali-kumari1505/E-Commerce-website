@@ -2,7 +2,7 @@ import { User } from "../model/user.model.js";
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { ENV } from "../config/env.js";
-// import cloudinary from "../config/cloudinary.js";
+import cloudinary from "../config/cloudinary.js";
 import {Product} from '../model/product.model.js'
 export const register =async(req ,res)=>{
     try {
@@ -155,10 +155,17 @@ export const updateProfile = async(req,res)=>{
         if(req.file){
             const base64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`
 
-            const uploadRes = await cloudinary.uploader.upload(base64,{
-                folder:"ProfilePhoto"
-            })
+            // const uploadRes = await cloudinary.uploader.upload(base64,{
+            //     folder:"ProfilePhoto"
+            // })
 
+            console.log("Before upload");
+
+const uploadRes = await cloudinary.uploader.upload(base64, {
+    folder: "ProfilePhoto"
+});
+
+console.log("After upload");
             updateData.profilePhoto = uploadRes.secure_url
         }
 

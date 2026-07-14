@@ -10,8 +10,8 @@ const userRoute = express.Router()
 userRoute.post('/register', register)
 userRoute.post('/login', login)
 userRoute.get('/getUser', protectRoute, getUser)
-// userRoute.post('/updateProfile', protectRoute, upload.single('profilePhoto'), updateProfile)
-// userRoute.get('/getCartItem', protectRoute, getCartItem)
-// userRoute.post('/logout', protectRoute, logout)
+userRoute.post('/updateProfile', protectRoute, upload.single('profilePhoto'), updateProfile)
+userRoute.get('/getCartItem', protectRoute, getCartItem)
+userRoute.post('/logout', protectRoute, logout)
 
 export default userRoute

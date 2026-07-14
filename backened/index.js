@@ -27,7 +27,17 @@ app.use('/api', userRoute)
 // app.use('/api/cart', cartRoute)
 // app.use('/api/payment', paymentRoute)
 // app.use('/api/analytic', analyticRoyte)
-app.listen(ENV.PORT,()=>{
-    connectDB()
-    console.log(`server started ${ENV.PORT}`)
-})
+const startServer = async () => {
+    try {
+    
+        await connectDB();
+ 
+        app.listen(ENV.PORT, () => {
+            console.log(`Server started on ${ENV.PORT}`);
+        });
+    } catch (error) {
+        console.log("Failed to connect to database:", error);
+    }
+};
+
+startServer();
