@@ -4,7 +4,7 @@ import { connectDB } from "./src/config/db.js";
 import cookieParser from "cookie-parser";
 import userRoute from "./src/routes/user.route.js";
 import productRoute from "./src/routes/product.route.js";
-// import cartRoute from "./src/routes/cart.route.js";
+import cartRoute from "./src/routes/cart.route.js";
 // import paymentRoute from "./src/routes/payment.route.js";
 // import analyticRoyte from "./src/routes/analytic.route.js";
 // import cors from 'cors'
@@ -24,7 +24,7 @@ app.use(express.urlencoded({extended:true}))
 
 app.use('/api', userRoute)
 app.use('/api/product', productRoute)
-// app.use('/api/cart', cartRoute)
+app.use('/api/cart', cartRoute)
 // app.use('/api/payment', paymentRoute)
 // app.use('/api/analytic', analyticRoyte)
 const startServer = async () => {
