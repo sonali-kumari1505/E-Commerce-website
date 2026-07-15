@@ -3,7 +3,7 @@ import { ENV } from "./src/config/env.js";
 import { connectDB } from "./src/config/db.js";
 import cookieParser from "cookie-parser";
 import userRoute from "./src/routes/user.route.js";
-// import productRoute from "./src/routes/product.route.js";
+import productRoute from "./src/routes/product.route.js";
 // import cartRoute from "./src/routes/cart.route.js";
 // import paymentRoute from "./src/routes/payment.route.js";
 // import analyticRoyte from "./src/routes/analytic.route.js";
@@ -23,7 +23,7 @@ app.use(express.urlencoded({extended:true}))
 // parses html form data and extended true means it parse the nexted form data
 
 app.use('/api', userRoute)
-// app.use('/api/product', productRoute)
+app.use('/api/product', productRoute)
 // app.use('/api/cart', cartRoute)
 // app.use('/api/payment', paymentRoute)
 // app.use('/api/analytic', analyticRoyte)
