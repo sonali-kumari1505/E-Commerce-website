@@ -5,13 +5,13 @@ import Profile from '@/Pages/User/Profile'
 import React from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './Protectedroutes'
-import Product from '@/Pages/User/Product'
-import Dashboard from '@/Pages/Admin/Dashboard'
-import AnalyticDashboard from '@/Pages/Admin/AnalyticDashboard'
-import ProductDashboard from '@/Pages/Admin/ProductDashboard'
-import SingleProduct from '@/Pages/User/SingleProduct'
-import CartPage from '@/Pages/User/CartPage'
-import Purchase from '@/Pages/User/Purchase'
+// import Product from '@/Pages/User/Product'
+// import Dashboard from '@/Pages/Admin/Dashboard'
+// import AnalyticDashboard from '@/Pages/Admin/AnalyticDashboard'
+// import ProductDashboard from '@/Pages/Admin/ProductDashboard'
+// import SingleProduct from '@/Pages/User/SingleProduct'
+// import CartPage from '@/Pages/User/CartPage'
+// import Purchase from '@/Pages/User/Purchase'
 
 const MainRoutes = () => {
   return (
@@ -24,7 +24,7 @@ const MainRoutes = () => {
         }/>
         <Route path='/login' element={<Login/>}/>
         <Route path='/register' element={<Register/>}/>
-        <Route path='/profile' element={
+        {/* <Route path='/profile' element={
             <ProtectedRoute>
                 <Profile/>
             </ProtectedRoute>
@@ -69,7 +69,7 @@ const MainRoutes = () => {
             }/>
 
 
-        </Route>
+        </Route> */}
     </Routes>
   )
 }
