@@ -59,7 +59,7 @@ export const getFeaturedProductApi = async()=>{
 
 
 export const deleteProductApi = async(id)=>{
-    const res  = await axios.post(`${import.meta.env.VITE_BASE_URL}/product/deleteProduct/${id}`,
+    const res  = await axios.post(`${import.meta.env.VITE_BASE_URL}/product/deleteProduct/${id}`, {},
         {
             headers:{'Content-Type':"Application/json"},
             withCredentials:true

@@ -1,59 +1,63 @@
-// yaha hum 2 middlware create karenge 
-// 1. jo yeh batayega ki user loggedin hai ya nhi 
-// 2. woh yeh batayega ki loggedin  user owner hai ya nhi 
+import jwt from 'jsonwebtoken';
+import { ENV } from '../config/env.js';
+import { User } from '../model/user.model.js';
 
-
-import jwt from 'jsonwebtoken'
-import { ENV } from '../config/env.js'
-import { User } from '../model/user.model.js'
-export const protectRoute =async(req ,res, next)=>{
+export const protectRoute = async (req, res, next) => {
     try {
-        const token = req.cookies.token
+        const token = req.cookies?.token;
 
-        if(!token){
+        if (!token) {
             return res.status(401).json({
-                message:"Token not found"
-            })
+                message: "Authentication required. Please login."
+            });
         }
 
+        const decode = jwt.verify(token, ENV.JWT_TOKEN);
 
-        const decode = await jwt.verify(token, ENV.JWT_TOKEN)
-
-        if(!decode){
+        if (!decode || !decode.userId) {
             return res.status(401).json({
-                message:"User not logged in "
-            })
+                message: "Invalid token"
+            });
         }
 
-        req.id = decode.userId
-        next()
+        req.id = decode.userId;
+        next();
     } catch (error) {
-        console.log(`error from protect middleware ,${error}`)
-    }
-}
-
-// check for user is owener that is admin or not
-export const adminRoute = async(req,res, next)=>{
-    const userId = req.id
-    if(!userId){
+        console.error(`Error from protectRoute middleware:`, error?.message || error);
         return res.status(401).json({
-            message:"Please login as an Admin"
-        })
+            message: "Invalid or expired token"
+        });
     }
+};
 
-    const user = await User.findById(userId)
+export const adminRoute = async (req, res, next) => {
+    try {
+        const userId = req.id;
+        if (!userId) {
+            return res.status(401).json({
+                message: "Please login as an Admin"
+            });
+        }
 
-    if(!user){
-        return res.status(401).json({
-            message:"Please login as an Admin"
-        })
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found"
+            });
+        }
+
+        if (user.email === ENV.ADMIN_EMAIL || user.owner) {
+            next();
+        } else {
+            return res.status(403).json({
+                message: "Access denied, Admin only"
+            });
+        }
+    } catch (error) {
+        console.error(`Error from adminRoute middleware:`, error?.message || error);
+        return res.status(500).json({
+            message: "Server error in admin authorization"
+        });
     }
-
-    if(user.email===ENV.ADMIN_EMAIL){
-        next()
-    } else{
-        return res.status(401).json({
-            message:"Access denied, Amin Only"
-        })
-    }
-}
+};

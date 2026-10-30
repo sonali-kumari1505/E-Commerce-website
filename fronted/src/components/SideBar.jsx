@@ -1,6 +1,4 @@
-// SideBar.jsx
 import { Home, LayoutDashboard, Package } from 'lucide-react'
-import React from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const SideBar = () => {

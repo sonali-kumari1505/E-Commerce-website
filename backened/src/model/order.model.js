@@ -33,10 +33,9 @@ const orderSchema = new mongoose.Schema({
 
     stripeSessionId:{
         type:String,
-        unique:true
+        unique:true,
+        sparse:true
     }
 },{timestamps:true})
 
 export const Order = mongoose.model("Order", orderSchema)
-
-// for the order of users

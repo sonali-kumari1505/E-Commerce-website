@@ -1,35 +1,34 @@
 import AllProducts from '@/components/AllProducts'
 import FilterProduct from '@/components/FilterProduct'
 import ProductSearchBar from '@/components/ProductSearchBar'
-import React, { useState } from 'react'
+import { useState } from 'react'
 
 const Product = () => {
   const [page, setpage] = useState(1)
   const [searchInput, setsearchInput] = useState("")
   const [activeSearch, setactiveSearch] = useState("")
   const [category, setcategory] = useState("")
-  const [price, setprice] = useState({min:"", max:""})
+  const [price, setprice] = useState({ min: "", max: "" })
 
-  const handleSearchSubmit = (e)=>{
+  const handleSearchSubmit = (e) => {
     e.preventDefault()
     setpage(1)
     setactiveSearch(searchInput)
-    setsearchInput("")
   }
 
-  const handleCategoryChange = (e)=>{
+  const handleCategoryChange = (val) => {
     setpage(1)
-    setcategory(e)
+    setcategory(val)
   }
  
-  const resetFormHandler =()=>{
+  const resetFormHandler = () => {
     setsearchInput("")
     setactiveSearch("")
     setcategory("")
-    setprice({min:"", max:""})
+    setprice({ min: "", max: "" })
+    setpage(1)
   }
 
-  console.log(activeSearch)
   return (
     <div className='min-h-screen bg-gray-50'>
       <ProductSearchBar

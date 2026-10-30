@@ -8,7 +8,10 @@ const userSchema = new mongoose.Schema({
 
     email:{
         type:String,
-        required:true
+        required:true,
+        unique:true,
+        trim:true,
+        lowercase:true
     },
 
     password:{
@@ -24,7 +27,6 @@ const userSchema = new mongoose.Schema({
         type:String
     },
 
-
     cartItem:[
         {
             quantity:{
@@ -36,9 +38,17 @@ const userSchema = new mongoose.Schema({
                 ref:"Product"
             }
         }
-    ]
+    ],
+
+    resetPasswordToken: {
+        type: String,
+        default: null
+    },
+
+    resetPasswordExpires: {
+        type: Date,
+        default: null
+    }
 },{timestamps:true})
 
 export const User = mongoose.model("User", userSchema)
-//ower is myself as i if i login with my wmail id then that is true else false
-// ye is;iye kar rhe hai bcx fronted me jo v functionality hai wo sirf owener ko hi show hogi ok

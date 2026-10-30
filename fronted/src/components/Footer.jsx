@@ -1,4 +1,3 @@
-import React from 'react'
 import { Link } from 'react-router-dom'
 
 const Footer = () => {
@@ -12,7 +11,7 @@ const Footer = () => {
           
           {/* Company Info */}
           <div>
-            <h3 className='text-white text-lg font-bold mb-4'>ShopName</h3>
+            <h3 className='text-white text-lg font-bold mb-4'>E-Mart</h3>
             <p className='text-sm leading-relaxed mb-4'>
               Your trusted destination for quality products. We bring you the best shopping experience with great deals and excellent customer service.
             </p>
@@ -69,11 +68,6 @@ const Footer = () => {
                   Featured Products
                 </Link>
               </li>
-              <li>
-                <Link to='/' className='text-sm hover:text-white transition-colors'>
-                  Special Offers
-                </Link>
-              </li>
             </ul>
           </div>
 
@@ -101,16 +95,6 @@ const Footer = () => {
                   Returns & Exchange
                 </Link>
               </li>
-              <li>
-                <Link to='/' className='text-sm hover:text-white transition-colors'>
-                  Track Your Order
-                </Link>
-              </li>
-              <li>
-                <Link to='/' className='text-sm hover:text-white transition-colors'>
-                  Size Guide
-                </Link>
-              </li>
             </ul>
           </div>
 
@@ -120,7 +104,7 @@ const Footer = () => {
             <p className='text-sm mb-4'>
               Subscribe to get special offers, updates and exclusive deals.
             </p>
-            <form className='space-y-3'>
+            <form onSubmit={(e) => e.preventDefault()} className='space-y-3'>
               <input
                 type='email'
                 placeholder='Enter your email'
@@ -145,12 +129,12 @@ const Footer = () => {
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6'>
           <div className='md:flex md:items-center md:justify-between'>
             <div className='text-sm text-gray-500'>
-              © {currentYear} ShopName. All rights reserved.
+              © {currentYear} E-Mart. All rights reserved.
             </div>
             <div className='mt-4 md:mt-0'>
               <ul className='flex flex-wrap gap-6 text-sm'>
                 <li>
-                  <Link to='' className='text-gray-500 hover:text-white transition-colors'>
+                  <Link to='/' className='text-gray-500 hover:text-white transition-colors'>
                     Privacy Policy
                   </Link>
                 </li>
@@ -165,21 +149,6 @@ const Footer = () => {
                   </Link>
                 </li>
               </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Payment Methods (Optional) */}
-      <div className='border-t border-gray-800'>
-        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4'>
-          <div className='flex items-center justify-center gap-4 text-xs text-gray-500'>
-            <span>We accept:</span>
-            <div className='flex items-center gap-3'>
-              <span className='px-2 py-1 bg-gray-800 rounded text-white font-semibold'>VISA</span>
-              <span className='px-2 py-1 bg-gray-800 rounded text-white font-semibold'>MC</span>
-              <span className='px-2 py-1 bg-gray-800 rounded text-white font-semibold'>AMEX</span>
-              <span className='px-2 py-1 bg-gray-800 rounded text-white font-semibold'>UPI</span>
             </div>
           </div>
         </div>

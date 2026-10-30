@@ -1,6 +1,4 @@
-import React from 'react'
-
-const FilterProduct = ({category, setcategory, priceRange, setPriceRange, onReset}) => {
+const FilterProduct = ({ category, setcategory, priceRange, setPriceRange, onReset }) => {
   return (
     <div className='hidden lg:block w-[280px] h-screen sticky top-0 bg-white border-r border-gray-200'>
       <div className='p-6'>

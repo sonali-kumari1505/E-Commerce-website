@@ -4,75 +4,69 @@ import { redis } from "../config/redis.js";
 import { Product } from "../model/product.model.js";
 import { ENV } from "../config/env.js";
 
+const genAI = new GoogleGenerativeAI(ENV.GEMINI_API_KEY || "");
+const model = genAI.getGenerativeModel({ model: ENV.GEMINI_MODEL || "gemini-2.0-flash-lite" });
 
-
-const genAI = new GoogleGenerativeAI(ENV.GEMINI_API_KEY)
-const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash"})
-export const createProduct = async(req ,res)=>{
+const clearProductCache = async () => {
     try {
-        const {name, description, price, category} = req.body;
-
-        if(!name || !description || !price || !category){
-            return res.status(401).json({
-                message:"Please provide all the details"
-            })
+        const keys = await redis.keys("products:*");
+        if (keys && keys.length > 0) {
+            await redis.del(...keys);
         }
-        let imageUrl =''
-        if(req.file){
-             const base64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`
+    } catch (e) {
+        console.warn("Failed to clear redis cache:", e?.message || e);
+    }
+};
 
-             const uploadRes = await cloudinary.uploader.upload(base64,{
-                folder:"Product"
-             })
+export const createProduct = async (req, res) => {
+    try {
+        const { name, description, price, category } = req.body;
 
-             imageUrl  =uploadRes.secure_url
+        if (!name || !description || !price || !category) {
+            return res.status(400).json({
+                message: "Please provide all product details (name, description, price, category)"
+            });
+        }
+
+        let imageUrl = '';
+        if (req.file) {
+            const base64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+            const uploadRes = await cloudinary.uploader.upload(base64, {
+                folder: "Product"
+            });
+            imageUrl = uploadRes.secure_url;
         }
 
         const product = await Product.create({
-            name,
-            category,
-            price,
-            description,
-            image:imageUrl
-        })
+            name: name.trim(),
+            category: category.trim(),
+            price: Number(price),
+            description: description.trim(),
+            image: imageUrl
+        });
 
-        const keys = await redis.keys("products:*")
+        await clearProductCache();
 
-        if(keys.length>0){
-            await redis.del(...keys) 
-        }
-// to update we are deleting the cache here
-        return res.status(201).json(product)
-
+        return res.status(201).json(product);
     } catch (error) {
-        console.log(error,"From create product controller")
+        console.error("Error from createProduct controller:", error);
+        return res.status(500).json({ message: "Failed to create product" });
     }
-}
+};
 
-
-
-export const getProductController = async(req,res)=>{
+export const getProductController = async (req, res) => {
     try {
-        const page = parseInt(req.query.page ??"1", 10)
-        const limit = parseInt(req.query.limit?? "20",10)
-        const skip = (page-1 )*limit
+        const page = Math.max(1, parseInt(req.query.page ?? "1", 10));
+        const limit = Math.max(1, parseInt(req.query.limit ?? "20", 10));
+        const skip = (page - 1) * limit;
 
+        const { search, category, minPrice, maxPrice } = req.query;
 
-        // skip ka use isliye kiya let's say user abhi first page par hai toh 
-        // skip on first page,page =1 
-        // let's say user abhi first page par hai toh usko sirf 20 product he show hongey lekin ab user shift ho gaya next page par toh ab usko previous page par job bhi product woh ho nhi hongey unko hum skip kar denge
-        // ab user hai page 2 par toh pehle 20 products skip ho jaayenge aur next 20 producst show hongey
-
-
-        // page 1 par sirf 20 products show honge
-        // page 2 par next 20 producst show hongey uar pehle k 20 products skip ho jaayenge
-        // then page 3 par next 20 products show hongey and past k 40 products skip ho jaayenge
-        // and so on...
-
-        const {search, category, minPrice, maxPrice} = req.query
-
-
-         const prompt = `You are an intelligent assistant for an E-commerce platform. A user will type any query about what they want. Your task is to understand the intent and return most relevant keyword from the following list of categories:
+        let aiText = "";
+        if (search && search.trim() !== "") {
+            const rawSearch = search.trim();
+            try {
+                const prompt = `You are an intelligent assistant for an E-commerce platform. A user will type any query about what they want. Your task is to understand the intent and return the most relevant keyword from the following list of categories:
 - Jeans
 - Pants
 - Shirt
@@ -80,225 +74,169 @@ export const getProductController = async(req,res)=>{
 - Saree
 - Shoes
 
-Only reply with one single keyword from the list above that best matches the query. Do not explain anything. No extra text. Query: "${search}"`;
+Only reply with one single keyword from the list above that best matches the query. Do not explain anything. No extra text. Query: "${rawSearch}"`;
 
-
-        let aiText = null
-
-        if(search && search.trim() !==""){
-            const result  = await model.generateContent(prompt)
-            aiText = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text?.trim().replace(/[`"\n]/g, "") || ""
+                const result = await model.generateContent(prompt);
+                const generated = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text?.trim().replace(/[`"\n]/g, "");
+                aiText = generated || rawSearch;
+            } catch (aiErr) {
+                console.warn("Gemini intent extraction skipped, using direct query:", aiErr?.message || aiErr);
+                aiText = rawSearch;
+            }
         }
 
+        const mongoQuery = {};
 
-        let aiCategory = category
-
-        const mongoQuery = {}
-
-        // Jeans 
-        // jeans
-        if(aiText){
-            mongoQuery.$or=[
-                {name:{$regex:aiText, $options:"i"}},
-                {description:{$regex:aiText, $options:"i"}}
-            ]
+        if (aiText) {
+            mongoQuery.$or = [
+                { name: { $regex: aiText, $options: "i" } },
+                { description: { $regex: aiText, $options: "i" } },
+                { category: { $regex: aiText, $options: "i" } }
+            ];
         }
 
-        console.log(aiText)
-        if(category){
-            mongoQuery.category = category
-        }
-        
-        if(minPrice || maxPrice){
-            mongoQuery.price={}
-
-            if(minPrice) mongoQuery.price.$gte = Number(minPrice)
-            if(maxPrice) mongoQuery.price.$lte = Number(maxPrice)
+        if (category && category.trim() !== "") {
+            mongoQuery.category = category.trim();
         }
 
-        // cache key based par filter and pagination lagana hai 
-
+        if (minPrice || maxPrice) {
+            mongoQuery.price = {};
+            if (minPrice && !isNaN(Number(minPrice))) mongoQuery.price.$gte = Number(minPrice);
+            if (maxPrice && !isNaN(Number(maxPrice))) mongoQuery.price.$lte = Number(maxPrice);
+        }
 
         const cacheKey = `products:${JSON.stringify({
             page,
             limit,
-            search:aiText??"",
-            category:aiCategory??"",
-            minPrice:minPrice??"",
-            maxPrice:maxPrice??""
-        })}`
+            search: aiText || "",
+            category: category || "",
+            minPrice: minPrice || "",
+            maxPrice: maxPrice || ""
+        })}`;
 
-
-        const  cached = await redis.get(cacheKey)
-
-        if(cached){
-            const data = typeof cached==='string'?JSON.parse(cached):cached
-
-            return res.status(200).json({fromCached:true, ...data})
-
+        try {
+            const cached = await redis.get(cacheKey);
+            if (cached) {
+                const data = typeof cached === 'string' ? JSON.parse(cached) : cached;
+                return res.status(200).json({ fromCached: true, ...data });
+            }
+        } catch (cacheErr) {
+            console.warn("Redis read error:", cacheErr?.message || cacheErr);
         }
 
-
-        const [item, total]=await Promise.all([
+        const [items, total] = await Promise.all([
             Product.find(mongoQuery).skip(skip).limit(limit).lean(),
             Product.countDocuments(mongoQuery)
-        ])
+        ]);
 
+        const totalPages = Math.ceil(total / limit) || 1;
+        const hasMore = page < totalPages;
 
-        if(!item || item.length===0){
-            const emptyPayload={
-                products:[],
-                page,
-                limit,
-                total:0,
-                hasMore:false,
-                appliedFilters:{
-                    search:aiText,
-                    category:aiCategory,
-                    minPrice,
-                    maxPrice
-                }
-            }
-
-            await redis.set(cacheKey, JSON.stringify(emptyPayload))
-            return res.status(200).json({fromCached:false, ...emptyPayload})
-        }
-
-
-        // calculate pages
-
-        const totalPages = Math.ceil(total/limit)
-        const hasMore = page < totalPages
-
-        const payload={
-            products:item,
+        const payload = {
+            products: items || [],
             page,
             limit,
             total,
             totalPages,
             hasMore,
-            appliedFilters:{
-                search:aiText,
-                category:aiCategory,
-                minPrice,
-                maxPrice
+            appliedFilters: {
+                search: aiText,
+                category: category || "",
+                minPrice: minPrice || "",
+                maxPrice: maxPrice || ""
             }
+        };
+
+        try {
+            await redis.set(cacheKey, JSON.stringify(payload), { ex: 300 });
+        } catch (cacheErr) {
+            console.warn("Redis write error:", cacheErr?.message || cacheErr);
         }
 
-
-        await redis.set(cacheKey, JSON.stringify(payload), {ex:600})
-
-
-        return res.status(201).json({fromCached:false, ...payload})
-
-
-
+        return res.status(200).json({ fromCached: false, ...payload });
     } catch (error) {
-        console.log(`error from getPRoduct controller, ${error}`)
+        console.error("Error from getProductController:", error);
+        return res.status(500).json({ message: "Failed to fetch products" });
     }
-}
+};
 
-
-
-
-export const getFeatureProduct=async(req,res)=>{
+export const getFeatureProduct = async (req, res) => {
     try {
-        const featuredProducts = await Product.find({isFeatured:true})
-
-        if(!featuredProducts){
-            return res.status(401).json({
-                message:"No products found"
-            })
-        }
-
-
-
-        return res.status(201).json(featuredProducts)
+        const featuredProducts = await Product.find({ isFeatured: true }).lean();
+        return res.status(200).json(featuredProducts || []);
     } catch (error) {
-        console.log(`error from get feature product`)
+        console.error("Error from getFeatureProduct controller:", error);
+        return res.status(500).json({ message: "Failed to fetch featured products" });
     }
-}
+};
 
 export const toggleFeatureProducts = async (req, res) => {
-  try {
-    const product = await Product.findById(req.params.id)
-
-    if (!product) {
-      return res.status(404).json({ message: "Product not found" })
-    }
-
-    product.isFeatured = !product.isFeatured
-    await product.save()
-
-    return res.status(200).json({
-      message: "Product toggled successfully",
-      product
-    })
-  } catch (error) {
-    console.log("toggle error:", error)
-    res.status(500).json({ message: "Server error" })
-  }
-}
-
-
-
-
-export const deleteProduct = async(req,res)=>{
     try {
-        const productId = req.params.id;
+        const product = await Product.findById(req.params.id);
 
-        const product = await Product.findById(productId)
-
-        if(!product){
-            return res.status(401).json({
-                message:"Product not found"
-            })
+        if (!product) {
+            return res.status(404).json({ message: "Product not found" });
         }
 
-        if(product.image){
-            const publicId  = product.image.split("/").pop().split(".")[0]
+        product.isFeatured = !product.isFeatured;
+        await product.save();
+
+        await clearProductCache();
+
+        return res.status(200).json({
+            message: "Product featured status toggled successfully",
+            product
+        });
+    } catch (error) {
+        console.error("Toggle featured error:", error);
+        return res.status(500).json({ message: "Failed to toggle product status" });
+    }
+};
+
+export const deleteProduct = async (req, res) => {
+    try {
+        const productId = req.params.id;
+        const product = await Product.findById(productId);
+
+        if (!product) {
+            return res.status(404).json({ message: "Product not found" });
+        }
+
+        if (product.image && product.image.includes("cloudinary.com")) {
+            const parts = product.image.split("/");
+            const filename = parts.pop();
+            const publicId = filename.split(".")[0];
             try {
-                await cloudinary.uploader.destroy(`Product/${publicId}`)
-                console.log(`cloudinary imge delted`)
-            } catch (error) {
-                console.log(`error from deleting image, ${error
-                    }`)
+                await cloudinary.uploader.destroy(`Product/${publicId}`);
+            } catch (cloudinaryErr) {
+                console.warn("Error deleting image from Cloudinary:", cloudinaryErr?.message || cloudinaryErr);
             }
         }
 
+        await Product.findByIdAndDelete(productId);
+        await clearProductCache();
 
-
-        await Product.findByIdAndDelete(req.params.id)
-
-        const keys = await redis.keys('products:*')
-
-        if(keys.length>0){
-            await redis.del(...keys)
-        }
-
-
-        return res.status(201).json({
-            message:"Product delted succesfully"
-        })
+        return res.status(200).json({
+            message: "Product deleted successfully"
+        });
     } catch (error) {
-        console.log(`error from delte PRoduct`)
+        console.error("Error from deleteProduct controller:", error);
+        return res.status(500).json({ message: "Failed to delete product" });
     }
-}
+};
 
-
-export const getSingleProduct = async(req,res)=>{
+export const getSingleProduct = async (req, res) => {
     try {
-        const productId = req.params.id
-        const product = await  Product.findById(productId)
+        const productId = req.params.id;
+        const product = await Product.findById(productId);
 
-        if(!product){
-            return res.status(401).json({
-                message:"Product not found"
-            })
+        if (!product) {
+            return res.status(404).json({ message: "Product not found" });
         }
 
-        return res.status(201).json(product)
+        return res.status(200).json(product);
     } catch (error) {
-        console.log(`error from get single Product, ${error}`)
+        console.error("Error from getSingleProduct controller:", error);
+        return res.status(500).json({ message: "Failed to fetch product details" });
     }
-}
+};

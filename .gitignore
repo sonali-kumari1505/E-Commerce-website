@@ -3,6 +3,6 @@ fronted/env
 .env
 .env.*
 backened/.env
+info.txt
 backened/node_modules
 fronted/node_modules
-

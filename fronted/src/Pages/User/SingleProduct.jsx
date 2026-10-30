@@ -1,17 +1,34 @@
 import { useAddToCartHook } from '@/hooks/cart.hook'
 import { useGetSingleProduct } from '@/hooks/product.hook'
 import { Spinner } from '@/components/ui/spinner'
-import React from 'react'
 import { useParams } from 'react-router-dom'
 
 const SingleProduct = () => {
-  const {id} = useParams()
-  const {data} = useGetSingleProduct(id)
+  const { id } = useParams()
+  const { data, isLoading } = useGetSingleProduct(id)
   
-  const {mutate, isPending} = useAddToCartHook()
+  const { mutate, isPending } = useAddToCartHook()
   
-  const addTocartFunction = (id) => {
-    mutate({productId: id})
+  const addTocartFunction = (productId) => {
+    if (productId) {
+      mutate({ productId })
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className='min-h-screen w-full flex items-center justify-center'>
+        <Spinner />
+      </div>
+    )
+  }
+
+  if (!data) {
+    return (
+      <div className='min-h-screen w-full flex items-center justify-center text-gray-500'>
+        Product not found
+      </div>
+    )
   }
 
   return (

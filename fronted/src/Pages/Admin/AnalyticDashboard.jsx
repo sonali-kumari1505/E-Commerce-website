@@ -1,11 +1,11 @@
 import { useGetDailySalesData, useGetDashBoardData } from '@/hooks/dashboard.hook'
-import React, { useMemo } from 'react'
+import { useMemo } from 'react'
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 const AnalyticDashboard = () => {
-  const {data} = useGetDashBoardData()
+  const { data } = useGetDashBoardData()
  
-  const {startDate, endDate} = useMemo(() => {
+  const { startDate, endDate } = useMemo(() => {
     const end = new Date()
     const start = new Date()
 
@@ -20,7 +20,7 @@ const AnalyticDashboard = () => {
     }
   }, [])
 
-  const {data: dailySales} = useGetDailySalesData(startDate, endDate)
+  const { data: dailySales } = useGetDailySalesData(startDate, endDate)
 
   return (
     <div className='min-h-screen bg-white'>
@@ -58,7 +58,7 @@ const AnalyticDashboard = () => {
           
           <div className='h-[400px] w-full'>
             <ResponsiveContainer>
-              <LineChart data={dailySales}>
+              <LineChart data={dailySales || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb"/>
                 <XAxis 
                   dataKey="date"

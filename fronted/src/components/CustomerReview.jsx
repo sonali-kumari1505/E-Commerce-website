@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 
 const CustomerReview = () => {
   // Sample review data - replace with actual API data

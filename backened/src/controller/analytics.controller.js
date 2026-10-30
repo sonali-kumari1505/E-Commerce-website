@@ -1,127 +1,110 @@
-import { Order } from "../model/order.model.js"
-import { Product } from "../model/product.model.js"
-import { User } from "../model/user.model.js"
+import { Order } from "../model/order.model.js";
+import { Product } from "../model/product.model.js";
+import { User } from "../model/user.model.js";
 
-export  const getData = async()=>{
-    const totalUser = await User.countDocuments()
-    const totalProducts= await Product.countDocuments()
+export const getData = async () => {
+    const totalUser = await User.countDocuments();
+    const totalProducts = await Product.countDocuments();
 
-    const salesData= await Order.aggregate([
+    const salesData = await Order.aggregate([
         {
-            $group:{
-                _id:null, // it groups all document together,
-                totalSales : {$sum:1},
-                totalRevenue:{$sum:"$totalAmount" }
-
+            $group: {
+                _id: null,
+                totalSales: { $sum: 1 },
+                totalRevenue: { $sum: "$totalAmount" }
             }
         }
-    ])
-// yaha par ek he index milegi which is 0 index
-    const {totalSales, totalRevenue} = salesData[0]|| {totalSales:0, totalRevenue:0}
+    ]);
 
+    const { totalSales, totalRevenue } = salesData[0] || { totalSales: 0, totalRevenue: 0 };
 
     return {
-        users:totalUser,
-        products:totalProducts,
+        users: totalUser,
+        products: totalProducts,
         totalSales,
-        totalRevenue,
-    }
-}
+        totalRevenue: Math.round(totalRevenue * 100) / 100,
+    };
+};
 
-
-// maan lo humare total sales hai 3
-// har product ke liye usko ek value denge 1
-// like product 1: 1
-// product 2:1
-// product 3 :1
-// total sales = product1 + product2 + product3 = 1+1+1= 3
-// total revenue product1+ product3 + product2 = 100+200+500= 800
-
-
-export const getAnalyticsController=async(req,res)=>{
+export const getAnalyticsController = async (req, res) => {
     try {
-        const data = await getData()
-        return res.status(200).json(data)
+        const data = await getData();
+        return res.status(200).json(data);
     } catch (error) {
-        console.log(`error from getAnalutics controller, ${error}`)
+        console.error("Error from getAnalyticsController:", error);
+        return res.status(500).json({ message: "Failed to fetch analytics summary" });
     }
-}
+};
 
+function getDatesInRange(startDate, endDate) {
+    const dates = [];
+    const currentDate = new Date(startDate);
+    const stopDate = new Date(endDate);
 
-export const getDailySalesData = async(startDate, endDate)=>{
-    try {
-        const dailySales = await Order.aggregate([
-            {
-                $match:{
-                    createdAt:{
-                        $gte:startDate,
-                        $lte:endDate
-                    }
-                }
-            },
-            {
-                $group:{
-                    _id:{$dateToString:{format:"%Y-%m-%d", date:"$createdAt"}},
-                    sales:{$sum:1},
-                    revenue:{$sum:"$totalAmount"}
-                }
-            },
-            {$sort:{_id:1}}
-        ])
-
-
-        const dateArray = getDatesInRange(startDate, endDate)
-
-
-        return dateArray.map((date)=>{
-            const foundDate  = dailySales.find((item)=>item._id ===date)
-
-            return {
-                date, 
-                sales:foundDate?.sales||0,
-                revenue:foundDate?.revenue||0
-            }
-        })
-    } catch (error) {
-        console.log(`error from get daily sales data, ${error}`)
-    }
-}
-
-
-function getDatesInRange(startDate, endDate){
-    const dates=[];
-    let currentDate = new Date(startDate)
-
-    while(currentDate<= endDate){
+    while (currentDate <= stopDate) {
         dates.push(currentDate.toISOString().split("T")[0]);
-        currentDate.setDate(currentDate.getDate()+1)
+        currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    return dates
+    return dates;
 }
 
+export const getDailySalesData = async (startDate, endDate) => {
+    const dailySales = await Order.aggregate([
+        {
+            $match: {
+                createdAt: {
+                    $gte: startDate,
+                    $lte: endDate
+                }
+            }
+        },
+        {
+            $group: {
+                _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                sales: { $sum: 1 },
+                revenue: { $sum: "$totalAmount" }
+            }
+        },
+        { $sort: { _id: 1 } }
+    ]);
 
+    const dateArray = getDatesInRange(startDate, endDate);
 
+    return dateArray.map((date) => {
+        const found = dailySales.find((item) => item._id === date);
+        return {
+            date,
+            sales: found?.sales || 0,
+            revenue: Math.round((found?.revenue || 0) * 100) / 100
+        };
+    });
+};
 
-
-export const getDailySalesController =async(req, res)=>{
+export const getDailySalesController = async (req, res) => {
     try {
-        const {startDate, endDate} = req.query;
+        const { startDate, endDate } = req.query;
 
-        if(!startDate || !endDate){
-            return res.status(401).json({
-                message:"Please provide dates"
-            })
+        if (!startDate || !endDate) {
+            return res.status(400).json({
+                message: "Please provide both startDate and endDate query parameters"
+            });
         }
 
+        const start = new Date(startDate);
+        const end = new Date(endDate);
 
-        const start = new Date(startDate)
-        const end = new Date(endDate)
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            return res.status(400).json({ message: "Invalid date format provided" });
+        }
 
-        const data = await getDailySalesData(start, end)
+        // Include the entire end day
+        end.setHours(23, 59, 59, 999);
 
-        return res.status(201).json(data)
+        const data = await getDailySalesData(start, end);
+        return res.status(200).json(data);
     } catch (error) {
-        console.log(`error from getDaily sales controleer, ${error.b}`)
+        console.error("Error from getDailySalesController:", error);
+        return res.status(500).json({ message: "Failed to fetch daily sales data" });
     }
-}
+};

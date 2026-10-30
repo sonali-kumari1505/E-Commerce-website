@@ -1,4 +1,3 @@
-import React from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Popover,
@@ -6,20 +5,31 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Link, useNavigate } from 'react-router-dom'
-import { useLogoutHook } from '@/hooks/user.hook'
+import { useGetProfileHook, useLogoutHook } from '@/hooks/user.hook'
 import { useUserStore } from '@/store/userStore'
 import { ShoppingCart } from 'lucide-react'
+import { useEffect } from 'react'
 
 const Navbar = () => {
   const navigate = useNavigate()
   const user = useUserStore((state) => state.user)
+  const setUser = useUserStore((state) => state.setUser)
   const clearUser = useUserStore((state) => state.clearUser)
-  const {mutate} = useLogoutHook()
+  const { data: profileData } = useGetProfileHook()
+  const { mutate } = useLogoutHook()
+
+  useEffect(() => {
+    if (profileData) {
+      setUser(profileData)
+    }
+  }, [profileData, setUser])
     
   const logoutHandler = () => {
     mutate()
     clearUser()
   }
+
+  const cartCount = user?.cartItem?.length || 0
 
   return (
     <nav className='sticky top-0 z-50 bg-white border-b border-gray-200'>
@@ -57,56 +67,73 @@ const Navbar = () => {
               aria-label='Shopping cart'
             >
               <ShoppingCart className='w-5 h-5 text-gray-700' />
-              {user?.cartItem?.length > 0 && (
+              {cartCount > 0 && (
                 <span className='absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center text-xs font-bold text-white bg-red-600 rounded-full'>
-                  {user.cartItem.length}
+                  {cartCount}
                 </span>
               )}
             </button>
 
-            {/* User Profile Popover */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className='flex items-center gap-3 hover:bg-gray-50 rounded-lg p-2 transition-colors'>
-                  <Avatar className='h-8 w-8'>
-                    <AvatarImage src={user?.profilePhoto} alt={user?.name} />
-                    <AvatarFallback className='bg-gray-900 text-white text-sm font-medium'>
-                      {user?.name?.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className='hidden lg:block text-sm font-medium text-gray-900'>
-                    {user?.name}
-                  </span>
-                </button>
-              </PopoverTrigger>
-              
-              <PopoverContent className='w-48 p-2' align='end'>
-                <div className='flex flex-col gap-1'>
-                  <Link 
-                    to={'/profile'} 
-                    className='px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors'
-                  >
-                    Profile
-                  </Link>
-                  
-                  {user?.owner && (
-                    <button 
-                      onClick={() => navigate('/dashboard')} 
-                      className='px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors text-left'
-                    >
-                      Dashboard
-                    </button>
-                  )}
-                  
-                  <button 
-                    onClick={logoutHandler} 
-                    className='px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors text-left'
-                  >
-                    Logout
+            {/* User Profile Popover or Login button */}
+            {user ? (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className='flex items-center gap-3 hover:bg-gray-50 rounded-lg p-2 transition-colors cursor-pointer'>
+                    <Avatar className='h-8 w-8'>
+                      <AvatarImage src={user?.profilePhoto} alt={user?.name} />
+                      <AvatarFallback className='bg-gray-900 text-white text-sm font-medium'>
+                        {user?.name?.charAt(0).toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className='hidden lg:block text-sm font-medium text-gray-900'>
+                      {user?.name}
+                    </span>
                   </button>
-                </div>
-              </PopoverContent>
-            </Popover>
+                </PopoverTrigger>
+                
+                <PopoverContent className='w-48 p-2' align='end'>
+                  <div className='flex flex-col gap-1'>
+                    <Link 
+                      to={'/profile'} 
+                      className='px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors'
+                    >
+                      Profile
+                    </Link>
+                    
+                    {user?.owner && (
+                      <button 
+                        onClick={() => navigate('/dashboard')} 
+                        className='px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors text-left'
+                      >
+                        Dashboard
+                      </button>
+                    )}
+                    
+                    <button 
+                      onClick={logoutHandler} 
+                      className='px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors text-left'
+                    >
+                      Logout
+                    </button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <div className='flex items-center gap-3'>
+                <Link
+                  to='/login'
+                  className='text-sm font-medium text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md hover:bg-gray-100 transition-colors'
+                >
+                  Login
+                </Link>
+                <Link
+                  to='/register'
+                  className='text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 px-4 py-2 rounded-md transition-colors'
+                >
+                  Register
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>

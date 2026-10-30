@@ -1,76 +1,66 @@
-import Login from '@/Pages/Auth/Login'
-import Register from '@/Pages/Auth/Register'
-import Home from '@/Pages/User/Home'
-import Profile from '@/Pages/User/Profile'
-import React from 'react'
+import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router-dom'
-import { ProtectedRoute } from './Protectedroutes'
-// import Product from '@/Pages/User/Product'
-// import Dashboard from '@/Pages/Admin/Dashboard'
-// import AnalyticDashboard from '@/Pages/Admin/AnalyticDashboard'
-// import ProductDashboard from '@/Pages/Admin/ProductDashboard'
-// import SingleProduct from '@/Pages/User/SingleProduct'
-// import CartPage from '@/Pages/User/CartPage'
-// import Purchase from '@/Pages/User/Purchase'
+import { AdminProtectedRoute, ProtectedRoute } from './Protectedroutes'
+import { Spinner } from '@/components/ui/spinner'
+
+// Lazy-loaded route components for optimized bundle splitting
+const Home = lazy(() => import('@/Pages/User/Home'))
+const Product = lazy(() => import('@/Pages/User/Product'))
+const SingleProduct = lazy(() => import('@/Pages/User/SingleProduct'))
+const Login = lazy(() => import('@/Pages/Auth/Login'))
+const Register = lazy(() => import('@/Pages/Auth/Register'))
+const ForgotPassword = lazy(() => import('@/Pages/Auth/ForgotPassword'))
+const ResetPassword = lazy(() => import('@/Pages/Auth/ResetPassword'))
+const Profile = lazy(() => import('@/Pages/User/Profile'))
+const CartPage = lazy(() => import('@/Pages/User/CartPage'))
+const Purchase = lazy(() => import('@/Pages/User/Purchase'))
+const Dashboard = lazy(() => import('@/Pages/Admin/Dashboard'))
+const AnalyticDashboard = lazy(() => import('@/Pages/Admin/AnalyticDashboard'))
+const ProductDashboard = lazy(() => import('@/Pages/Admin/ProductDashboard'))
+
+const LoadingFallback = () => (
+  <div className='min-h-[60vh] w-full flex items-center justify-center'>
+    <Spinner />
+  </div>
+)
 
 const MainRoutes = () => {
   return (
-    
-    <Routes>
-        <Route path='/' element={
-            <ProtectedRoute>
-                <Home/>
-            </ProtectedRoute>
-        }/>
-        <Route path='/login' element={<Login/>}/>
-        <Route path='/register' element={<Register/>}/>
-        {/* <Route path='/profile' element={
-            <ProtectedRoute>
-                <Profile/>
-            </ProtectedRoute>
-        }/>
-        <Route path='/product' element={
-            <ProtectedRoute>
-                <Product/>
-            </ProtectedRoute>
-        }/>
-        <Route path='/product/:id' element={
-            <ProtectedRoute>
-                <SingleProduct/>
-            </ProtectedRoute>
-        }/>
-        <Route path='/cart' element={
-            <ProtectedRoute>
-                <CartPage/>
-            </ProtectedRoute>
-        }/>
-        <Route path='/purchase' element={
-            <ProtectedRoute>
-                <Purchase/>
-            </ProtectedRoute>
-        }/>
+    <Suspense fallback={<LoadingFallback />}>
+      <Routes>
+          {/* Public Storefront & Auth Routes */}
+          <Route path='/' element={<Home />} />
+          <Route path='/product' element={<Product />} />
+          <Route path='/product/:id' element={<SingleProduct />} />
+          <Route path='/login' element={<Login />} />
+          <Route path='/register' element={<Register />} />
+          <Route path='/forgot-password' element={<ForgotPassword />} />
+          <Route path='/reset-password/:token' element={<ResetPassword />} />
+          <Route path='/purchase' element={<Purchase />} />
 
-        <Route path='/dashboard' element={
-            <ProtectedRoute>
-                <Dashboard/>
-            </ProtectedRoute>
-        }>
-        <Route index element={
-            <ProtectedRoute>
+          {/* Authenticated Customer Routes */}
+          <Route path='/profile' element={
+              <ProtectedRoute>
+                  <Profile />
+              </ProtectedRoute>
+          } />
+          <Route path='/cart' element={
+              <ProtectedRoute>
+                  <CartPage />
+              </ProtectedRoute>
+          } />
 
-                <AnalyticDashboard/>
-            </ProtectedRoute>
-            }/>
-        <Route path='product' element={
-            <ProtectedRoute>
-                <ProductDashboard/>
-
-            </ProtectedRoute>
-            }/>
-
-
-        </Route> */}
-    </Routes>
+          {/* Admin Only Routes */}
+          <Route path='/dashboard' element={
+              <AdminProtectedRoute>
+                  <Dashboard />
+              </AdminProtectedRoute>
+          }>
+              <Route index element={<AnalyticDashboard />} />
+              <Route path='product' element={<ProductDashboard />} />
+          </Route>
+      </Routes>
+    </Suspense>
   )
 }
 

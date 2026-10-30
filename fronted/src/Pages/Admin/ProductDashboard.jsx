@@ -1,6 +1,6 @@
-import { useCreateProduct, useGetAllProductHook, useToggleProduct } from '@/hooks/product.hook'
-import { Plus, Search } from 'lucide-react'
-import React, { useState } from 'react'
+import { useCreateProduct, useDeleteProductApi, useGetAllProductHook, useToggleProduct } from '@/hooks/product.hook'
+import { Plus, Search, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -23,31 +23,38 @@ const ProductDashboard = () => {
     setactiveSearch(searchInput)
   }
 
-  const {data} = useGetAllProductHook({
+  const { data } = useGetAllProductHook({
     page,
     search: activeSearch,
   })
 
-  const {mutate, isPending} = useCreateProduct()
-  const {mutate: toggleProduct} = useToggleProduct()
-  const {register, handleSubmit, reset} = useForm()
+  const { mutate, isPending } = useCreateProduct()
+  const { mutate: toggleProduct } = useToggleProduct()
+  const { mutate: deleteProduct, isPending: isDeleting } = useDeleteProductApi()
+  const { register, handleSubmit, reset } = useForm()
 
-  const createProductHandler = (data) => {
-    const formData = new FormData()
+  const createProductHandler = (formData) => {
+    const payload = new FormData()
 
-    if(data.name) formData.append("name", data.name)
-    if(data.description) formData.append("description", data.description)
-    if(data.price) formData.append("price", data.price)
-    if(data.category) formData.append("category", data.category)
-    if(data.image && data.image[0]) formData.append("image", data.image[0])
+    if (formData.name) payload.append("name", formData.name)
+    if (formData.description) payload.append("description", formData.description)
+    if (formData.price) payload.append("price", formData.price)
+    if (formData.category) payload.append("category", formData.category)
+    if (formData.image && formData.image[0]) payload.append("image", formData.image[0])
     
-    mutate(formData, {
+    mutate(payload, {
       onSuccess: () => reset()
     })
   }
 
   const createToggle = (id) => {
     toggleProduct(id)
+  }
+
+  const handleDelete = (id, name) => {
+    if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
+      deleteProduct(id)
+    }
   }
 
   return (
@@ -58,7 +65,7 @@ const ProductDashboard = () => {
         <div className='flex items-center justify-between mb-8'>
           <div>
             <h1 className='text-2xl font-bold text-gray-900'>Products</h1>
-            <p className='text-sm text-gray-600 mt-1'>{data?.totalProducts || 0} total products</p>
+            <p className='text-sm text-gray-600 mt-1'>{data?.total || 0} total products</p>
           </div>
 
           {/* Create Product Button */}
@@ -83,28 +90,29 @@ const ProductDashboard = () => {
                   type="text" 
                   placeholder='Product Name' 
                   className='w-full px-4 py-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent'
-                  {...register('name')} 
+                  {...register('name', { required: true })} 
                 />
                 <select 
                   className='w-full px-4 py-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent'
-                  {...register('category')}
+                  {...register('category', { required: true })}
                 >
                   <option value="">Select Category</option>
                   <option value="Mens">Men</option>
-                  <option value="Women">Women</option>
+                  <option value="Womens">Women</option>
                   <option value="Kids">Kids</option>
                 </select>
                 <input 
                   type="text" 
                   placeholder='Description' 
                   className='w-full px-4 py-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent'
-                  {...register('description')} 
+                  {...register('description', { required: true })} 
                 />
                 <input 
                   type="number" 
+                  step="0.01"
                   placeholder='Price' 
                   className='w-full px-4 py-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent'
-                  {...register('price')} 
+                  {...register('price', { required: true })} 
                 />
                 <input 
                   type="file" 
@@ -153,13 +161,13 @@ const ProductDashboard = () => {
                 <th className='px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider'>Category</th>
                 <th className='px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider'>Price</th>
                 <th className='px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider'>Featured</th>
-                <th className='px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider'>Action</th>
+                <th className='px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider'>Actions</th>
               </tr>
             </thead>
             <tbody className='bg-white divide-y divide-gray-200'>
-              {data?.products?.map((item, index) => {
+              {data?.products?.map((item) => {
                 return (
-                  <tr key={index} className='hover:bg-gray-50 transition-colors'>
+                  <tr key={item._id} className='hover:bg-gray-50 transition-colors'>
                     <td className='px-6 py-4'>
                       <div className='flex items-center gap-3'>
                         <div className='h-12 w-12 bg-gray-50 rounded-md overflow-hidden flex-shrink-0'>
@@ -188,12 +196,22 @@ const ProductDashboard = () => {
                       </span>
                     </td>
                     <td className='px-6 py-4'>
-                      <button
-                        onClick={() => createToggle(item._id)}
-                        className='text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors'
-                      >
-                        Toggle
-                      </button>
+                      <div className='flex items-center gap-3'>
+                        <button
+                          onClick={() => createToggle(item._id)}
+                          className='text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors'
+                        >
+                          Toggle
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item._id, item.name)}
+                          disabled={isDeleting}
+                          className='text-sm font-medium text-red-600 hover:text-red-800 transition-colors flex items-center gap-1'
+                          title="Delete product"
+                        >
+                          <Trash2 className='w-4 h-4' />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )

@@ -3,19 +3,20 @@ import { useClearCartHook, useRemoveCartItemHook, useUpdateQuantity } from '@/ho
 import { useCreatePaymentHook } from '@/hooks/payment.hook'
 import { useGetUserCartItemHook } from '@/hooks/user.hook'
 import { Trash2, ShoppingBag } from 'lucide-react'
-import React from 'react'
 
 const CartPage = () => {
-  const {data} = useGetUserCartItemHook()
+  const { data } = useGetUserCartItemHook()
 
-  const totalAmount = data?.cartItem?.reduce(
-    (sum, item) => sum + (item.product.price * item.quantity), 0
+  const validCartItems = data?.cartItem?.filter((item) => item.product) || []
+
+  const totalAmount = validCartItems.reduce(
+    (sum, item) => sum + ((item.product?.price || 0) * item.quantity), 0
   ) || 0
    
-  const {mutate: removeAll} = useClearCartHook()
-  const {mutate} = useUpdateQuantity()
-  const {mutate: deleteFromCart} = useRemoveCartItemHook()
-  const {mutate: payment, isPending} = useCreatePaymentHook()
+  const { mutate: removeAll } = useClearCartHook()
+  const { mutate } = useUpdateQuantity()
+  const { mutate: deleteFromCart } = useRemoveCartItemHook()
+  const { mutate: payment, isPending } = useCreatePaymentHook()
 
   const clearCartItemAll = () => {
     removeAll()
@@ -42,9 +43,9 @@ const CartPage = () => {
   }
 
   const paymentBag = () => {
-    const products = data?.cartItem?.map((item) => ({
+    const products = validCartItems.map((item) => ({
       product: {
-        _id: item._id,
+        _id: item.product._id,
         name: item.product.name,
         price: item.product.price,
         image: item.product.image,
@@ -62,7 +63,7 @@ const CartPage = () => {
         <div className='mb-6'>
           <h1 className='text-3xl font-bold text-gray-900'>Shopping Cart</h1>
           <p className='text-sm text-gray-600 mt-1'>
-            {data?.cartItem?.length || 0} {data?.cartItem?.length === 1 ? 'item' : 'items'} in your cart
+            {validCartItems.length} {validCartItems.length === 1 ? 'item' : 'items'} in your cart
           </p>
         </div>
 
@@ -70,24 +71,25 @@ const CartPage = () => {
           
           {/* Cart Items Section */}
           <div className='flex-1 space-y-4'>
-            {data?.cartItem?.length === 0 ? (
+            {validCartItems.length === 0 ? (
               <div className='bg-white rounded-lg p-12 text-center'>
                 <ShoppingBag className='w-16 h-16 text-gray-300 mx-auto mb-4' />
                 <h2 className='text-xl font-semibold text-gray-900 mb-2'>Your cart is empty</h2>
                 <p className='text-gray-600'>Add some products to get started</p>
               </div>
             ) : (
-              data?.cartItem?.map((item, index) => {
+              validCartItems.map((item, index) => {
+                const prod = item.product
                 return (
-                  <div key={index} className='bg-white rounded-lg border border-gray-200 p-4 lg:p-6 hover:shadow-md transition-shadow'>
+                  <div key={prod._id || index} className='bg-white rounded-lg border border-gray-200 p-4 lg:p-6 hover:shadow-md transition-shadow'>
                     <div className='flex flex-col sm:flex-row gap-4'>
                       
                       {/* Product Image */}
                       <div className='w-full sm:w-32 h-32 bg-gray-50 rounded-md overflow-hidden flex-shrink-0'>
                         <img 
-                          src={item.product.image} 
+                          src={prod.image} 
                           className='w-full h-full object-contain' 
-                          alt={item.product.name} 
+                          alt={prod.name} 
                         />
                       </div>
 
@@ -97,10 +99,10 @@ const CartPage = () => {
                         {/* Product Info */}
                         <div className='space-y-1'>
                           <h3 className='text-base font-semibold text-gray-900 leading-tight'>
-                            {item.product.name}
+                            {prod.name}
                           </h3>
                           <p className='text-2xl font-bold text-gray-900'>
-                            ${item.product.price}
+                            ${prod.price}
                           </p>
                         </div>
 
@@ -110,7 +112,7 @@ const CartPage = () => {
                           {/* Quantity Selector */}
                           <div className='flex items-center gap-2 border border-gray-300 rounded-md'>
                             <button
-                              onClick={() => updateCartItemDecrease(item.product._id)}
+                              onClick={() => updateCartItemDecrease(prod._id)}
                               disabled={item.quantity <= 1}
                               className='w-9 h-9 flex items-center justify-center text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors'
                             >
@@ -120,7 +122,7 @@ const CartPage = () => {
                               {item.quantity}
                             </span>
                             <button
-                              onClick={() => updateCartItemIncrease(item.product._id)}
+                              onClick={() => updateCartItemIncrease(prod._id)}
                               className='w-9 h-9 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors'
                             >
                               +
@@ -129,7 +131,7 @@ const CartPage = () => {
 
                           {/* Delete Button */}
                           <button
-                            onClick={() => deleteProduct(item.product._id)}
+                            onClick={() => deleteProduct(prod._id)}
                             className='p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors'
                             aria-label='Remove item'
                           >
@@ -157,7 +159,7 @@ const CartPage = () => {
                 </div>
                 <div className='flex justify-between text-sm'>
                   <span className='text-gray-600'>Items</span>
-                  <span className='font-semibold text-gray-900'>{data?.cartItem?.length || 0}</span>
+                  <span className='font-semibold text-gray-900'>{validCartItems.length}</span>
                 </div>
                 <div className='flex justify-between text-sm'>
                   <span className='text-gray-600'>Shipping</span>
@@ -174,13 +176,13 @@ const CartPage = () => {
               <div className='space-y-3'>
                 <button 
                   onClick={paymentBag}
-                  disabled={!data?.cartItem?.length || isPending}
+                  disabled={!validCartItems.length || isPending}
                   className='w-full h-12 bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center'
                 >
                   {isPending ? <Spinner /> : "Proceed to Checkout"}
                 </button>
 
-                {data?.cartItem?.length > 0 && (
+                {validCartItems.length > 0 && (
                   <button 
                     onClick={clearCartItemAll}
                     className='w-full h-12 bg-white hover:bg-gray-50 text-gray-900 font-medium border border-gray-300 rounded-md transition-colors'

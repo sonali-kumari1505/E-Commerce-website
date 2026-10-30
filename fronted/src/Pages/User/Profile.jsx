@@ -1,5 +1,4 @@
 import { Pencil } from 'lucide-react'
-import React from 'react'
 import {
   Dialog,
   DialogContent,
@@ -15,16 +14,16 @@ import { useUserStore } from '@/store/userStore'
 
 const Profile = () => {
   const user = useUserStore((state) => state.user)
-  const {register, handleSubmit, reset} = useForm()
-  const {mutate, isPending} = useUpdateProfileHook()
+  const { register, handleSubmit, reset } = useForm()
+  const { mutate, isPending } = useUpdateProfileHook()
 
   const updateFormHandler = (data) => {
     const formdata = new FormData()
 
-    if(data.name) {
+    if (data.name) {
       formdata.append("name", data.name)
     }
-    if(data.profilePhoto && data.profilePhoto[0]) {
+    if (data.profilePhoto && data.profilePhoto[0]) {
       formdata.append("profilePhoto", data.profilePhoto[0])
     }
     mutate(formdata, {
@@ -39,9 +38,9 @@ const Profile = () => {
         {/* Avatar with Edit */}
         <div className='relative w-32 h-32 mx-auto mb-8'>
           <img 
-            src={user?.profilePhoto} 
+            src={user?.profilePhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}`} 
             className='w-full h-full rounded-full object-cover border border-gray-200' 
-            alt={user?.name} 
+            alt={user?.name || 'Profile'} 
           />
           
           <Dialog>
@@ -63,6 +62,7 @@ const Profile = () => {
                 <input 
                   type="text" 
                   placeholder='Name' 
+                  defaultValue={user?.name || ''}
                   className='w-full px-4 py-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent'
                   {...register('name')}
                 />
