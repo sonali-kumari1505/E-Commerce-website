@@ -7,6 +7,8 @@ import productRoute from "./src/routes/product.route.js";
 import cartRoute from "./src/routes/cart.route.js";
 import paymentRoute from "./src/routes/payment.route.js";
 import analyticRoute from "./src/routes/analytic.route.js";
+import newsletterRoute from "./src/routes/newsletter.route.js";
+import reviewRoute from "./src/routes/review.route.js";
 import cors from 'cors';
 
 const app = express();
@@ -24,6 +26,8 @@ app.use('/api/product', productRoute);
 app.use('/api/cart', cartRoute);
 app.use('/api/payment', paymentRoute);
 app.use('/api/analytic', analyticRoute);
+app.use('/api/newsletter', newsletterRoute);
+app.use('/api/review', reviewRoute);
 
 // Global error handler
 app.use((err, req, res, next) => {

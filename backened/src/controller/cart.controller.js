@@ -1,7 +1,19 @@
+import mongoose from "mongoose";
 import { User } from "../model/user.model.js";
+
+const checkDbConnection = (res) => {
+    if (mongoose.connection.readyState !== 1) {
+        res.status(503).json({
+            message: "Database is unreachable. Please ensure your IP is whitelisted in MongoDB Atlas Network Access."
+        });
+        return false;
+    }
+    return true;
+};
 
 export const addToCart = async (req, res) => {
     try {
+        if (!checkDbConnection(res)) return;
         const { productId } = req.body;
         const userId = req.id;
 

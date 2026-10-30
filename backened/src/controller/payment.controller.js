@@ -4,8 +4,19 @@ import { stripe } from "../config/stripe.js";
 import { Order } from "../model/order.model.js";
 import { User } from "../model/user.model.js";
 
+const checkDbConnection = (res) => {
+    if (mongoose.connection.readyState !== 1) {
+        res.status(503).json({
+            message: "Database connection in progress. Please ensure MongoDB Atlas has whitelisted your IP address and retry."
+        });
+        return false;
+    }
+    return true;
+};
+
 export const createCheckoutSession = async (req, res) => {
     try {
+        if (!checkDbConnection(res)) return;
         const { products } = req.body;
 
         if (!Array.isArray(products) || products.length === 0) {
@@ -43,12 +54,14 @@ export const createCheckoutSession = async (req, res) => {
             success_url: `${ENV.CLIENT_URL}/purchase?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${ENV.CLIENT_URL}/cart`,
             metadata: {
-                userId: req.id.toString(),
+                userId: req.id ? req.id.toString() : '',
                 products: JSON.stringify(
                     products.map((p) => ({
                         id: (p.product?._id || p.product?.id || '').toString(),
-                        quantity: p.quantity,
-                        price: p.product?.price
+                        name: p.product?.name || 'Product',
+                        image: p.product?.image || '',
+                        quantity: Number(p.quantity) || 1,
+                        price: Number(p.product?.price) || 0
                     }))
                 )
             }
@@ -67,6 +80,7 @@ export const createCheckoutSession = async (req, res) => {
 
 export const checkoutSuccess = async (req, res) => {
     try {
+        if (!checkDbConnection(res)) return;
         const { sessionId } = req.body;
         if (!sessionId) {
             return res.status(400).json({
@@ -74,7 +88,7 @@ export const checkoutSuccess = async (req, res) => {
             });
         }
 
-        // Idempotency: check if order was already recorded
+        // 1. Idempotency: check if order was already recorded
         const existingOrder = await Order.findOne({ stripeSessionId: sessionId }).populate('products.product');
         if (existingOrder) {
             return res.status(200).json({
@@ -83,17 +97,52 @@ export const checkoutSuccess = async (req, res) => {
             });
         }
 
-        const session = await stripe.checkout.sessions.retrieve(sessionId);
+        // 2. Retrieve session from Stripe with 10s timeout
+        const retrievePromise = stripe.checkout.sessions.retrieve(sessionId, {
+            expand: ['line_items']
+        });
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Stripe session retrieval timed out")), 10000)
+        );
 
-        if (session.payment_status === 'paid') {
+        let session;
+        try {
+            session = await Promise.race([retrievePromise, timeoutPromise]);
+        } catch (stripeErr) {
+            console.error("Stripe session retrieve error:", stripeErr?.message || stripeErr);
+            // Double check if created in the meantime
+            const retryOrder = await Order.findOne({ stripeSessionId: sessionId }).populate('products.product');
+            if (retryOrder) {
+                return res.status(200).json({
+                    message: "Order already confirmed",
+                    order: retryOrder
+                });
+            }
+            return res.status(500).json({
+                message: "Unable to verify payment with Stripe at this moment. Please retry."
+            });
+        }
+
+        if (session.payment_status === 'paid' || session.status === 'complete') {
             const rawProducts = JSON.parse(session.metadata?.products || '[]');
-            const validProducts = rawProducts
-                .filter(p => p && p.id && mongoose.Types.ObjectId.isValid(p.id))
+            let validProducts = rawProducts
+                .filter(p => p && (p.id ? mongoose.Types.ObjectId.isValid(p.id) : true))
                 .map((product) => ({
-                    product: product.id,
+                    product: product.id && mongoose.Types.ObjectId.isValid(product.id) ? product.id : undefined,
+                    name: product.name || 'Product',
+                    image: product.image || '',
                     quantity: Number(product.quantity) || 1,
                     price: Number(product.price) || 0
                 }));
+
+            // Fallback to line_items from Stripe if metadata had no products
+            if (validProducts.length === 0 && session.line_items?.data?.length > 0) {
+                validProducts = session.line_items.data.map(item => ({
+                    name: item.description || 'Product',
+                    quantity: item.quantity || 1,
+                    price: (item.amount_total || 0) / 100 / (item.quantity || 1)
+                }));
+            }
 
             const userId = session.metadata?.userId;
             const validUserId = userId && mongoose.Types.ObjectId.isValid(userId) ? userId : undefined;
@@ -109,9 +158,13 @@ export const checkoutSuccess = async (req, res) => {
 
             // Clear the user's cart
             if (validUserId) {
-                await User.findByIdAndUpdate(validUserId, {
-                    $set: { cartItem: [] }
-                });
+                try {
+                    await User.findByIdAndUpdate(validUserId, {
+                        $set: { cartItem: [] }
+                    });
+                } catch (cartErr) {
+                    console.error("Failed to clear cart:", cartErr);
+                }
             }
 
             const populatedOrder = await Order.findById(newOrder._id).populate('products.product');

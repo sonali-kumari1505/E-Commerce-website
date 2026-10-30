@@ -8,3 +8,5 @@
 No curly braces are used in  the default export and we can re name it 
 in named export excat match of function in export and import ,if want to change the name then do it like below
 import { add as sum } from "./math.js";
+30 october:=>
+// upstash ka use karna hai project me

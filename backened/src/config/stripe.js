@@ -1,4 +1,7 @@
-import Stripe from 'stripe'
-import { ENV } from './env.js'
+import Stripe from 'stripe';
+import { ENV } from './env.js';
 
-export const stripe = new Stripe(ENV.STRIPE_SECRET_KEY)
+export const stripe = new Stripe(ENV.STRIPE_SECRET_KEY, {
+    timeout: 10000,
+    maxNetworkRetries: 2
+});

@@ -1,8 +1,19 @@
+import mongoose from "mongoose";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import cloudinary from "../config/cloudinary.js";
 import { redis } from "../config/redis.js";
 import { Product } from "../model/product.model.js";
 import { ENV } from "../config/env.js";
+
+const checkDbConnection = (res) => {
+    if (mongoose.connection.readyState !== 1) {
+        res.status(503).json({
+            message: "Database is unreachable. Please ensure your IP is whitelisted in MongoDB Atlas Network Access."
+        });
+        return false;
+    }
+    return true;
+};
 
 const genAI = new GoogleGenerativeAI(ENV.GEMINI_API_KEY || "");
 const model = genAI.getGenerativeModel({ model: ENV.GEMINI_MODEL || "gemini-2.0-flash-lite" });
@@ -56,6 +67,7 @@ export const createProduct = async (req, res) => {
 
 export const getProductController = async (req, res) => {
     try {
+        if (!checkDbConnection(res)) return;
         const page = Math.max(1, parseInt(req.query.page ?? "1", 10));
         const limit = Math.max(1, parseInt(req.query.limit ?? "20", 10));
         const skip = (page - 1) * limit;
@@ -162,6 +174,7 @@ Only reply with one single keyword from the list above that best matches the que
 
 export const getFeatureProduct = async (req, res) => {
     try {
+        if (!checkDbConnection(res)) return;
         const featuredProducts = await Product.find({ isFeatured: true }).lean();
         return res.status(200).json(featuredProducts || []);
     } catch (error) {
