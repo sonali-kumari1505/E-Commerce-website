@@ -1,7 +1,34 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { CheckCircle2, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { useSubscribeNewsletterHook } from '@/hooks/newsletter.hook'
 
 const Footer = () => {
   const currentYear = new Date().getFullYear()
+  const [email, setEmail] = useState('')
+  const [isSubscribed, setIsSubscribed] = useState(false)
+
+  const { mutate, isPending } = useSubscribeNewsletterHook({
+    onSuccess: () => {
+      setIsSubscribed(true)
+    }
+  })
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    const trimmed = email.trim()
+    if (!trimmed) {
+      toast.error('Please enter your email address')
+      return
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(trimmed)) {
+      toast.error('Please enter a valid email address')
+      return
+    }
+    mutate({ email: trimmed })
+  }
 
   return (
     <footer className='bg-gray-900 text-gray-300'>
@@ -104,19 +131,53 @@ const Footer = () => {
             <p className='text-sm mb-4'>
               Subscribe to get special offers, updates and exclusive deals.
             </p>
-            <form onSubmit={(e) => e.preventDefault()} className='space-y-3'>
-              <input
-                type='email'
-                placeholder='Enter your email'
-                className='w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-md text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent'
-              />
-              <button
-                type='submit'
-                className='w-full bg-white text-gray-900 py-2.5 px-4 rounded-md font-semibold text-sm hover:bg-gray-100 transition-colors'
-              >
-                Subscribe
-              </button>
-            </form>
+            {isSubscribed ? (
+              <div className='bg-gray-800 border border-green-500/40 rounded-md p-4 text-sm space-y-2'>
+                <div className='flex items-center gap-2 text-green-400 font-semibold'>
+                  <CheckCircle2 className='w-5 h-5 shrink-0' />
+                  <span>Subscribed Successfully!</span>
+                </div>
+                <p className='text-xs text-gray-300'>
+                  Thank you for subscribing! Check your inbox for exclusive deals and updates.
+                </p>
+                <button
+                  type='button'
+                  onClick={() => {
+                    setIsSubscribed(false)
+                    setEmail('')
+                  }}
+                  className='text-xs text-gray-400 hover:text-white underline pt-1 cursor-pointer'
+                >
+                  Subscribe another email
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className='space-y-3'>
+                <input
+                  type='email'
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder='Enter your email'
+                  disabled={isPending}
+                  required
+                  className='w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-md text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent disabled:opacity-60'
+                />
+                <button
+                  type='submit'
+                  disabled={isPending}
+                  className='w-full bg-white text-gray-900 py-2.5 px-4 rounded-md font-semibold text-sm hover:bg-gray-100 transition-colors disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer'
+                >
+                  {isPending ? (
+                    <>
+                      <Loader2 className='w-4 h-4 animate-spin' />
+                      <span>Subscribing...</span>
+                    </>
+                  ) : (
+                    'Subscribe'
+                  )}
+                </button>
+              </form>
+            )}
             <p className='text-xs mt-3 text-gray-500'>
               By subscribing, you agree to our Privacy Policy
             </p>
