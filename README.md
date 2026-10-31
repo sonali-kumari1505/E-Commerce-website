@@ -449,6 +449,7 @@ Ensure your MongoDB Atlas cluster allows connections from anywhere because serve
 
 - **Lead Developer**: [Sonali Kumari](https://github.com/sonali-kumari1505)
 - **Repository**: [https://github.com/sonali-kumari1505/E-Commerce-website](https://github.com/sonali-kumari1505/E-Commerce-website)
+- **deploy Link**:[https://e-commerce-websitefronted.vercel.app]
 
 ---
 
