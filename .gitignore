@@ -2,6 +2,7 @@ node_modules/
 fronted/env
 .env
 .env.*
+!.env.example
 backened/.env
 info.txt
 backened/node_modules

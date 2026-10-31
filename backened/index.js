@@ -21,6 +21,16 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Ensure database connection is ready for incoming requests (including serverless on Vercel)
+app.use(async (req, res, next) => {
+    try {
+        await connectDB();
+        next();
+    } catch (error) {
+        next(error);
+    }
+});
+
 app.use('/api', userRoute);
 app.use('/api/product', productRoute);
 app.use('/api/cart', cartRoute);
@@ -48,4 +58,9 @@ const startServer = async () => {
     }
 };
 
-startServer();
+// Start standalone HTTP server when run locally or on platforms like Render/Railway
+if (!process.env.VERCEL) {
+    startServer();
+}
+
+export default app;
