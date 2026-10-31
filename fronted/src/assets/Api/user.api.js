@@ -8,6 +8,9 @@ export const registerApi = async(payload) => {
             withCredentials: true
         }
     )
+    if (res.data?.token) {
+        localStorage.setItem('token', res.data.token)
+    }
     return res.data
 }
 
@@ -19,10 +22,14 @@ export const loginApi = async(payload) => {
             withCredentials: true
         }
     )
+    if (res.data?.token) {
+        localStorage.setItem('token', res.data.token)
+    }
     return res.data
 }
 
 export const logoutApi = async() => {
+    localStorage.removeItem('token')
     const res = await axios.post(`${import.meta.env.VITE_BASE_URL}/logout`,
         {},
         {

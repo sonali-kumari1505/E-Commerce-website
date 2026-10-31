@@ -59,6 +59,7 @@ export const register = async (req, res) => {
 
         return res.status(201).cookie("token", token, cookieOptions).json({
             message: `Welcome ${user.name}`,
+            token,
             user: {
                 _id: user._id,
                 name: user.name,
@@ -109,6 +110,7 @@ export const login = async (req, res) => {
             await user.save();
             return res.status(200).cookie("token", token, cookieOptions).json({
                 message: `Welcome back Admin ${user.name}`,
+                token,
                 user: {
                     _id: user._id,
                     name: user.name,
@@ -122,6 +124,7 @@ export const login = async (req, res) => {
 
         return res.status(200).cookie("token", token, cookieOptions).json({
             message: `Welcome back ${user.name}`,
+            token,
             user: {
                 _id: user._id,
                 name: user.name,
